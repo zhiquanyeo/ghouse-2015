@@ -2,37 +2,87 @@
 package org.usfirst.frc.team354.robot;
 
 
+import org.usfirst.frc.team354.robot.systems.HDrive;
+
 import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.SpeedController;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Victor;
 
-/**
- * This is a demo program showing the use of the RobotDrive class.
- * The SampleRobot class is the base of a robot application that will automatically call your
- * Autonomous and OperatorControl methods at the right time as controlled by the switches on
- * the driver station or the field controls.
+/****************************************************
+ * G-House Pirates 2015 Robot for Recycle Rush
+ * 
+ * Drive System:
+ * - H-drive
+ * TODO: Decide if we are slaving left/right via Y-cable, or
+ * if we are setting up 4 separate motors
+ * 
+ * @author Admin
  *
- * The VM is configured to automatically run this class, and to call the
- * functions corresponding to each mode, as described in the SampleRobot
- * documentation. If you change the name of this class or the package after
- * creating this project, you must also update the manifest file in the resource
- * directory.
- *
- * WARNING: While it may look like a good choice to use for your code if you're inexperienced,
- * don't. Unless you know what you are doing, complex code will be much more difficult under
- * this system. Use IterativeRobot or Command-Based instead if you're new.
- */
+ ****************************************************/
+
 public class Robot extends SampleRobot {
+	/*********************************
+	 * Constants
+	 *********************************/
+	//Motor/Drivetrain ports
+	private static final int PORT_MOTOR_FRONT_LEFT = 1;
+	private static final int PORT_MOTOR_FRONT_RIGHT = 2;
+	private static final int PORT_MOTOR_REAR_LEFT = 3;
+	private static final int PORT_MOTOR_REAR_RIGHT = 4;
+	private static final int PORT_MOTOR_H_DRIVE = 5;
+	
+	/*********************************
+	 * Main Drive System Components
+	 *********************************/
+	private HDrive robotDrive;
+	//Speed Controllers for the drive train
+	private SpeedController fL;
+	private SpeedController fR;
+	private SpeedController rL;
+	private SpeedController rR;
+	private SpeedController hD;
+	
+	/*********************************
+	 * HID Control Components
+	 *********************************/
+	Joystick driveController;
+	
+	//TODO: Get rid
+	RobotDrive driveTrain;
     RobotDrive myRobot;
     Joystick stick;
 
     public Robot() {
+    	//Initialize all our subsystems
+    	initializeDriveSystem();
+    	
+    	
+    	//TODO: Get rid
         myRobot = new RobotDrive(0, 1);
         myRobot.setExpiration(0.1);
         stick = new Joystick(0);
     }
 
+    /**
+     * Initialize the drive system
+     */
+    private void initializeDriveSystem() {
+    	//If we need to switch SpeedController types, do it here
+    	//By default, we will use Victor 888s
+    	//We can also end up using less speed controller instances
+    	//by slaving both left side motors together
+    	fL = new Victor(PORT_MOTOR_FRONT_LEFT);
+    	fR = new Victor(PORT_MOTOR_FRONT_RIGHT);
+    	rL = new Victor(PORT_MOTOR_REAR_LEFT);
+    	rR = new Victor(PORT_MOTOR_REAR_RIGHT);
+    	hD = new Victor(PORT_MOTOR_H_DRIVE);
+    	
+    	robotDrive = new HDrive(fL, fR, rL, rR, hD);
+    }
+    
     /**
      * Drive left & right motors for 2 seconds then stop
      */
