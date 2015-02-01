@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.SampleRobot;
 import edu.wpi.first.wpilibj.RobotDrive;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.SpeedController;
+import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Victor;
 
@@ -34,6 +35,9 @@ public class Robot extends SampleRobot {
 	private static final int PORT_MOTOR_REAR_RIGHT = 4;
 	private static final int PORT_MOTOR_H_DRIVE = 5;
 	
+	//Lift System ports
+	private static final int PORT_MOTOR_LIFT = 6;
+	
 	/*********************************
 	 * Main Drive System Components
 	 *********************************/
@@ -44,6 +48,11 @@ public class Robot extends SampleRobot {
 	private SpeedController rL;
 	private SpeedController rR;
 	private SpeedController hD;
+	
+	/*********************************
+	 * Lift Components
+	 *********************************/
+	private SpeedController liftMotor;
 	
 	/*********************************
 	 * HID Control Components
@@ -81,6 +90,10 @@ public class Robot extends SampleRobot {
     	hD = new Victor(PORT_MOTOR_H_DRIVE);
     	
     	robotDrive = new HDrive(fL, fR, rL, rR, hD);
+    }
+    
+    private void initializeLiftSystem() {
+    	liftMotor = new Talon(PORT_MOTOR_LIFT);
     }
     
     /**
