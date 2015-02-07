@@ -1,6 +1,7 @@
 package org.usfirst.frc.team354.robot.systems;
 
 import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.RobotDrive.MotorType;
 import edu.wpi.first.wpilibj.SpeedController;
 
 public class HDrive {
@@ -23,6 +24,11 @@ public class HDrive {
 		
 		this.robotDrive = new RobotDrive(this.frontLeftSC, this.rearLeftSC, 
 										 this.frontRightSC, this.rearRightSC);
+		
+		robotDrive.setInvertedMotor(MotorType.kFrontLeft, true);
+		robotDrive.setInvertedMotor(MotorType.kFrontRight, true);
+		robotDrive.setInvertedMotor(MotorType.kRearLeft, true);
+		robotDrive.setInvertedMotor(MotorType.kRearRight, true);
 		
 	}
 	
