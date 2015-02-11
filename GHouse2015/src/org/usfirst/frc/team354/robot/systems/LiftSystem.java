@@ -37,10 +37,11 @@ public class LiftSystem {
 	private SpeedController rollerB;
 	
 	private static final double MOTOR_SPEED = 0.4;
+	private static final double ROLLER_SPEED = 0.6;
 	
 	//====== State Machine =======
 	
-	private enum LiftState {
+	public enum LiftState {
 		AT_BOTTOM,
 		AT_TOP,
 		AT_POINT,
@@ -65,6 +66,15 @@ public class LiftSystem {
 	public void update() {
 		long currentTime = System.currentTimeMillis();
 		
+		/**
+		 * We update the state machine here
+		 * If we were forced to move to top/bottom via sendToTop/sendToBottom
+		 * Then we keep the motor running until we hit one of the switches
+		 * and then transition state.
+		 * 
+		 * If we are moving to a point, check if we have hit one of the switches
+		 * and transition state accordingly.
+		 */
 		if (currentState == LiftState.MOVING_TO_TOP) {
 			//Stop the motor if we have hit the top switch
 			if (!topSwitch.get()) {
@@ -78,6 +88,16 @@ public class LiftSystem {
 				liftMotor.set(0);
 				currentState = LiftState.AT_BOTTOM;
 				liftEncoder.reset();
+			}
+		}
+		else if (currentState == LiftState.MOVING_TO_POINT) {
+			if (!topSwitch.get()) {
+				liftMotor.set(0);
+				currentState = LiftState.AT_TOP;
+			}
+			else if (!bottomSwitch.get()) {
+				liftMotor.set(0);
+				currentState = LiftState.AT_BOTTOM;
 			}
 		}
 		
@@ -104,6 +124,9 @@ public class LiftSystem {
 		
 	}
 	
+	/**
+	 * Move the lift up. This can override a sendToTop/sendToBottom command
+	 */
 	public void moveUp() {
 		if (!topSwitch.get()) {
 			liftMotor.set(0);
@@ -115,6 +138,9 @@ public class LiftSystem {
 		}
 	}
 	
+	/**
+	 * Move the lift down. This can override a sendToTop/sendToBottom command
+	 */
 	public void moveDown() {
 		if (!bottomSwitch.get()) {
 			liftMotor.set(0);
@@ -141,10 +167,16 @@ public class LiftSystem {
 	}
 	
 	public void startRollers() {
-		
+		rollerA.set(ROLLER_SPEED);
+		rollerB.set(-ROLLER_SPEED);
 	}
 	
 	public void stopRollers() {
-		
+		rollerA.set(0);
+		rollerB.set(0);
+	}
+	
+	public LiftState getState() {
+		return currentState;
 	}
 }
