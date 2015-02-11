@@ -3,6 +3,8 @@ package org.usfirst.frc.team354.robot;
 
 
 import org.usfirst.frc.team354.robot.systems.HDrive;
+import org.usfirst.frc.team354.robot.systems.LiftSystem;
+import org.usfirst.frc.team354.robot.systems.ShelfSystem;
 
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
@@ -34,16 +36,28 @@ public class Robot extends SampleRobot {
 	//Motor/Drivetrain ports
 	private static final int PORT_MOTOR_FRONT_LEFT = 0; //PWM
 	private static final int PORT_MOTOR_FRONT_RIGHT = 1; //PWM
-	private static final int PORT_MOTOR_REAR_LEFT = 2; //PWM
-	private static final int PORT_MOTOR_REAR_RIGHT = 3; //PWM
-	private static final int PORT_MOTOR_H_DRIVE = 4; //PWM
+	//private static final int PORT_MOTOR_REAR_LEFT = 2; //PWM - Commenting out since we are slaving left and right sides
+	//private static final int PORT_MOTOR_REAR_RIGHT = 3; //PWM
+	private static final int PORT_MOTOR_H_DRIVE = 2; //PWM
 	
 	//Lift System ports
-	private static final int PORT_MOTOR_LIFT = 6; //PWM
+	private static final int PORT_MOTOR_LIFT = 3; //PWM
+	private static final int PORT_MOTOR_LIFT_ROLLER_A = 5; //PWM
+	private static final int PORT_MOTOR_LIFT_ROLLER_B = 6; //PWM
 	private static final int PORT_LIFT_ENCODER_CH_A = 0; //Digital
 	private static final int PORT_LIFT_ENCODER_CH_B = 1; //Digital
 	private static final int PORT_LIFT_TOP_SWITCH = 2; //Digital
 	private static final int PORT_LIFT_BOTTOM_SWITCH = 3; //Digital
+	
+	//Shelf System ports
+	private static final int PORT_MOTOR_SHELF = 4; //PWM
+	private static final int PORT_MOTOR_SHELF_ROLLER_A = 7; //PWM
+	private static final int PORT_MOTOR_SHELF_ROLLER_B = 8; //PWM
+	private static final int PORT_SHELF_ENCODER_CH_A = 4; //Digital
+	private static final int PORT_SHELF_ENCODER_CH_B = 5; //Digital
+	private static final int PORT_SHELF_OPEN_SWITCH = 6; //Digital
+	private static final int PORT_SHELF_CLOSE_SWITCH = 7; //Digital
+	
 	
 	/*********************************
 	 * Main Drive System Components
@@ -52,8 +66,8 @@ public class Robot extends SampleRobot {
 	//Speed Controllers for the drive train
 	private SpeedController fL;
 	private SpeedController fR;
-	private SpeedController rL;
-	private SpeedController rR;
+	//private SpeedController rL;
+	//private SpeedController rR;
 	private SpeedController hD;
 	private double driveExpoValue = 4.0;
 	private double crabExpoValue = 4.0; //Separate for strafing
@@ -62,25 +76,36 @@ public class Robot extends SampleRobot {
 	/*********************************
 	 * Lift Components
 	 *********************************/
+	private LiftSystem liftSystem;
 	private SpeedController liftMotor;
+	private SpeedController liftRollerA;
+	private SpeedController liftRollerB;
 	private Encoder liftEncoder;
 	private DigitalInput liftTopSwitch;
 	private DigitalInput liftBottomSwitch;
 	
 	/*********************************
+	 * Shelf Components
+	 *********************************/
+	private ShelfSystem shelfSystem;
+	private SpeedController shelfMotor;
+	private SpeedController shelfRollerA;
+	private SpeedController shelfRollerB;
+	private Encoder shelfEncoder;
+	private DigitalInput shelfOpenSwitch;
+	private DigitalInput shelfCloseSwitch;
+	
+	/*********************************
 	 * HID Control Components
 	 *********************************/
 	Joystick driveController = new Joystick(0);
-	
-	//EXPT
-	Servo panServo = new Servo(8);
-	Servo tiltServo = new Servo(9);
+	Joystick codriverController = new Joystick(1);
 	
     public Robot() {
     	//Initialize all our subsystems
     	initializeDriveSystem();
     	initializeLiftSystem();
-    	
+    	initializeShelfSystem();
     }
 
     /**
@@ -93,33 +118,38 @@ public class Robot extends SampleRobot {
     	//by slaving both left side motors together
     	fL = new Victor(PORT_MOTOR_FRONT_LEFT);
     	fR = new Victor(PORT_MOTOR_FRONT_RIGHT);
-    	rL = new Victor(PORT_MOTOR_REAR_LEFT);
-    	rR = new Victor(PORT_MOTOR_REAR_RIGHT);
+    	//rL = new Victor(PORT_MOTOR_REAR_LEFT);
+    	//rR = new Victor(PORT_MOTOR_REAR_RIGHT);
     	hD = new Victor(PORT_MOTOR_H_DRIVE);
     	
-    	robotDrive = new HDrive(fL, fR, rL, rR, hD);
+    	robotDrive = new HDrive(fL, fR, hD);
     }
     
     private void initializeLiftSystem() {
-    	liftMotor = new Talon(PORT_MOTOR_LIFT);
+    	liftMotor = new Victor(PORT_MOTOR_LIFT);
     	liftEncoder = new Encoder(PORT_LIFT_ENCODER_CH_A, PORT_LIFT_ENCODER_CH_B);
     	liftTopSwitch = new DigitalInput(PORT_LIFT_TOP_SWITCH);
     	liftBottomSwitch = new DigitalInput(PORT_LIFT_BOTTOM_SWITCH);
+    	
+    	liftRollerA = new Talon(PORT_MOTOR_LIFT_ROLLER_A);
+    	liftRollerB = new Talon(PORT_MOTOR_LIFT_ROLLER_B);
+    	
+    	liftSystem = new LiftSystem(liftMotor, liftTopSwitch, liftBottomSwitch, liftEncoder, liftRollerA, liftRollerB);
     }
     
-    /**
-     * Drive left & right motors for 2 seconds then stop
-     */
+    private void initializeShelfSystem() {
+    	shelfMotor = new Victor(PORT_MOTOR_SHELF);
+    	shelfEncoder = new Encoder(PORT_SHELF_ENCODER_CH_A, PORT_SHELF_ENCODER_CH_B);
+    	shelfOpenSwitch = new DigitalInput(PORT_SHELF_OPEN_SWITCH);
+    	shelfCloseSwitch = new DigitalInput(PORT_SHELF_CLOSE_SWITCH);
+    	shelfRollerA = new Talon(PORT_MOTOR_SHELF_ROLLER_A);
+    	shelfRollerB = new Talon(PORT_MOTOR_SHELF_ROLLER_B);
+    	
+    	shelfSystem = new ShelfSystem(shelfMotor, shelfOpenSwitch, shelfCloseSwitch, shelfEncoder, shelfRollerA, shelfRollerB);
+    }
+    
     public void autonomous() {
-        while(isAutonomous() && isEnabled()) {
-        	panServo.set(0.5);
-        	tiltServo.set(0.5);
-        	for (int angle = 0; angle < 180; angle += 5) {
-        		panServo.setAngle(angle);
-        		tiltServo.setAngle(angle);
-        		Timer.delay(0.2);
-        	}
-        }
+        
     }
 
     /**

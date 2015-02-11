@@ -40,6 +40,11 @@ public class HDrive {
 		this.hDriveSC = hD;
 		
 		this.robotDrive = new RobotDrive(this.frontLeftSC, this.frontRightSC);
+		
+		robotDrive.setInvertedMotor(MotorType.kFrontLeft, true);
+		robotDrive.setInvertedMotor(MotorType.kFrontRight, true);
+		robotDrive.setInvertedMotor(MotorType.kRearLeft, true);
+		robotDrive.setInvertedMotor(MotorType.kRearRight, true);
 	}
 	
 	public void hDrive(double speed, double turn, double strafe) {

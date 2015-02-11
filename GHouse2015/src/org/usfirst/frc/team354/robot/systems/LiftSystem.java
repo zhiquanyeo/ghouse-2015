@@ -4,47 +4,147 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.SpeedController;
 
+/**
+ * The LiftSystem class represents the physical lift mechanism on the robot.
+ * The lift mechanism consists of a belt driven cylinder (driven by liftMotor), 
+ * connected via chains to both sides of the lift carriage. There are limit
+ * switches (topSwitch and bottomSwitch) on the lift mechanism that allow the robot
+ * to know when the carriage is at the physical stop limits.
+ * 
+ * The lift drive motor also includes a quadrature encoder. This will be used to determine
+ * where the carriage is on the lift. This gets reset to 0 every time we bring the carriage
+ * all the way to the bottom of the lift.
+ * 
+ * There are also 2 roller motors (rollerA and rollerB) that act as intake feeds.
+ * 
+ * The LiftSystem operates as a state machine. The basic states are:
+ * - AT_BOTTOM : The lift carriage is at the bottom and contacting the limit switch
+ * - AT_POINT : The lift carriage is at some point on the rails (neither top nor bottom)
+ * - AT_TOP : The lift carriage is at the top and contacting the limit switch
+ * - MOVING_TO_POINT : The lift carriage is currently moving to a point (top, bottom, arbitrary)
+ * 
+ * The 3 AT_* states are all valid start and end states. The LiftSystem should start at the AT_POINT
+ * state until it can positively ascertain that it is either AT_TOP or AT_BOTTOM.
+ * @author zhiquan
+ *
+ */
 public class LiftSystem {
 	private DigitalInput topSwitch;
 	private DigitalInput bottomSwitch;
 	private SpeedController liftMotor;
 	private Encoder liftEncoder;
+	private SpeedController rollerA;
+	private SpeedController rollerB;
 	
 	private static final double MOTOR_SPEED = 0.4;
 	
-	public LiftSystem(SpeedController lMotor, DigitalInput tSwitch, DigitalInput bSwitch, Encoder lEncoder) {
+	//====== State Machine =======
+	
+	private enum LiftState {
+		AT_BOTTOM,
+		AT_TOP,
+		AT_POINT,
+		MOVING_TO_POINT,
+		MOVING_TO_TOP,
+		MOVING_TO_BOTTOM
+	};
+	
+	private LiftState currentState = LiftState.AT_POINT;
+	
+	private long lastUpdateTime = 0;
+	
+	public LiftSystem(SpeedController lMotor, DigitalInput tSwitch, DigitalInput bSwitch, Encoder lEncoder, SpeedController rA, SpeedController rB) {
 		liftMotor = lMotor;
 		topSwitch = tSwitch;
 		bottomSwitch = bSwitch;
 		lEncoder = liftEncoder;
+		rollerA = rA;
+		rollerB = rB;
 	}
 	
 	public void update() {
+		long currentTime = System.currentTimeMillis();
 		
+		if (currentState == LiftState.MOVING_TO_TOP) {
+			//Stop the motor if we have hit the top switch
+			if (!topSwitch.get()) {
+				liftMotor.set(0);
+				currentState = LiftState.AT_TOP;
+			}
+		}
+		else if (currentState == LiftState.MOVING_TO_BOTTOM) {
+			//Stop the motor if we have hit the bottom switch
+			if (!bottomSwitch.get()) {
+				liftMotor.set(0);
+				currentState = LiftState.AT_BOTTOM;
+				liftEncoder.reset();
+			}
+		}
+		
+		lastUpdateTime = currentTime;
 	}
 	
 	public void sendToBottom() {
-		//Run the motor until the bottom switch registers off
-		while (bottomSwitch.get()) {
+		//Only run this if we are at a point
+		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_TOP) { 
+			//Run the motor until the bottom switch registers off
 			liftMotor.set(MOTOR_SPEED);
+			currentState = LiftState.MOVING_TO_BOTTOM;
 		}
-		
-		//Reset the encoder
-		liftEncoder.reset();
 	}
 	
 	public void sendToTop() {
-		while (topSwitch.get()) {
+		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_BOTTOM) { 
 			liftMotor.set(-MOTOR_SPEED);
+			currentState = LiftState.MOVING_TO_TOP;
 		}
 	}
 	
 	public void calibrate() {
-		sendToBottom();
-		sendToTop();
-		sendToBottom();
 		
-		int encoderCount = liftEncoder.get();
-		//Do some math here
+	}
+	
+	public void moveUp() {
+		if (!topSwitch.get()) {
+			liftMotor.set(0);
+			currentState = LiftState.AT_TOP;
+		}
+		else {
+			liftMotor.set(-MOTOR_SPEED);
+			currentState = LiftState.MOVING_TO_POINT;
+		}
+	}
+	
+	public void moveDown() {
+		if (!bottomSwitch.get()) {
+			liftMotor.set(0);
+			currentState = LiftState.AT_BOTTOM;
+		}
+		else {
+			liftMotor.set(MOTOR_SPEED);
+			currentState = LiftState.MOVING_TO_POINT;
+		}
+	}
+	
+	public void stop() {
+		liftMotor.set(0);
+		
+		if (!bottomSwitch.get()) {
+			currentState = LiftState.AT_BOTTOM;
+		}
+		else if (!topSwitch.get()) {
+			currentState = LiftState.AT_TOP;
+		}
+		else {
+			currentState = LiftState.AT_POINT;
+		}
+	}
+	
+	public void startRollers() {
+		
+	}
+	
+	public void stopRollers() {
+		
 	}
 }
