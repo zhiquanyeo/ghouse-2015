@@ -157,6 +157,10 @@ public class Robot extends SampleRobot {
      */
     public void operatorControl() {
         while (isOperatorControl() && isEnabled()) {
+        	// Inform the various systems that we're in a new cycle
+        	liftSystem.update();
+        	shelfSystem.update();
+        	
         	//DRIVE THIS THING
         	//doDrive();
         	
