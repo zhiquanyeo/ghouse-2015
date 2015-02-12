@@ -44,10 +44,10 @@ public class Robot extends SampleRobot {
 	private static final int PORT_MOTOR_LIFT = 3; //PWM
 	private static final int PORT_MOTOR_LIFT_ROLLER_A = 5; //PWM
 	private static final int PORT_MOTOR_LIFT_ROLLER_B = 6; //PWM
-	private static final int PORT_LIFT_ENCODER_CH_A = 0; //Digital
-	private static final int PORT_LIFT_ENCODER_CH_B = 1; //Digital
-	private static final int PORT_LIFT_TOP_SWITCH = 2; //Digital
-	private static final int PORT_LIFT_BOTTOM_SWITCH = 3; //Digital
+	private static final int PORT_LIFT_ENCODER_CH_A = 2; //Digital
+	private static final int PORT_LIFT_ENCODER_CH_B = 3; //Digital
+	private static final int PORT_LIFT_TOP_SWITCH = 0; //Digital
+	private static final int PORT_LIFT_BOTTOM_SWITCH = 1; //Digital
 	
 	//Shelf System ports
 	private static final int PORT_MOTOR_SHELF = 4; //PWM
@@ -158,7 +158,21 @@ public class Robot extends SampleRobot {
     public void operatorControl() {
         while (isOperatorControl() && isEnabled()) {
         	//DRIVE THIS THING
-        	doDrive();
+        	//doDrive();
+        	
+        	//==== Lift Controls (Manual Override) ====
+        	if (driveController.getRawButton(2) || driveController.getRawButton(4)) {
+        		if (driveController.getRawButton(2)) {
+        			liftSystem.moveDown();
+        		}
+        		else {
+        			liftSystem.moveUp();
+        		}
+        	}
+        	else {
+        		liftSystem.stop();
+        	}
+        	
         }
     }
 

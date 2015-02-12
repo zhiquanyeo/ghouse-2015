@@ -133,7 +133,7 @@ public class LiftSystem {
 			currentState = LiftState.AT_TOP;
 		}
 		else {
-			liftMotor.set(-MOTOR_SPEED);
+			liftMotor.set(MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_POINT;
 		}
 	}
@@ -147,7 +147,7 @@ public class LiftSystem {
 			currentState = LiftState.AT_BOTTOM;
 		}
 		else {
-			liftMotor.set(MOTOR_SPEED);
+			liftMotor.set(-MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_POINT;
 		}
 	}
