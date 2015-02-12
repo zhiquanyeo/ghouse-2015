@@ -108,14 +108,14 @@ public class LiftSystem {
 		//Only run this if we are at a point
 		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_TOP) { 
 			//Run the motor until the bottom switch registers off
-			liftMotor.set(MOTOR_SPEED);
+			liftMotor.set(-MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_BOTTOM;
 		}
 	}
 	
 	public void sendToTop() {
 		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_BOTTOM) { 
-			liftMotor.set(-MOTOR_SPEED);
+			liftMotor.set(MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_TOP;
 		}
 	}
