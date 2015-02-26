@@ -27,6 +27,8 @@ import edu.wpi.first.wpilibj.SpeedController;
  * 
  * CLOSED, AT_POINT and OPEN are valid start and end states. The ShelfSystem should start
  * at the AT_POINT state until it can positively ascertain that it is either CLOSED or OPEN.
+ * 
+ * Special point is at -272
  */
 public class ShelfSystem {
 	private SpeedController shelfMotor;
@@ -47,7 +49,8 @@ public class ShelfSystem {
 		AT_POINT,
 		MOVING_TO_POINT,
 		MOVING_TO_OPEN,
-		MOVING_TO_CLOSED
+		MOVING_TO_CLOSED,
+		MOVING_TO_SWEET_SPOT
 	};
 	
 	private ShelfState currentState = ShelfState.AT_POINT;
@@ -99,6 +102,25 @@ public class ShelfSystem {
 //		 		currentState = ShelfState.CLOSED;
 //		 	}
 		 }
+		 else if (currentState == ShelfState.MOVING_TO_SWEET_SPOT) {
+			 if (shelfEncoder.get() >= -270 && shelfEncoder.get() <= -265) {
+				 shelfMotor.set(0);
+				 currentState = ShelfState.AT_POINT;
+			 }
+			 else {
+				 if (shelfEncoder.get() < -270) {
+						//move in the close direction
+					 	System.out.println("Moving in close direction (update)");
+						shelfMotor.set(MOTOR_SPEED);
+						//currentState = ShelfState.MOVING_TO_SWEET_SPOT;
+					}
+					else if (shelfEncoder.get() > -265) {
+						System.out.println("Moving in open direction (update)");
+						shelfMotor.set(-MOTOR_SPEED);
+						//currentState = ShelfState.MOVING_TO_SWEET_SPOT;
+					}
+			 }
+		 }
 		
 		lastUpdateTime = currentTime;
 	}
@@ -141,6 +163,7 @@ public class ShelfSystem {
 			shelfMotor.set(0);
 			currentState = ShelfState.CLOSED;
 			shelfEncoder.reset();
+			System.out.println("shelf encoder reset");
 		}
 		else {
 			shelfMotor.set(MOTOR_SPEED); //TODO If we're spinnign the wrong way, flip this
@@ -160,6 +183,22 @@ public class ShelfSystem {
 		}
 		else {
 			currentState = ShelfState.AT_POINT;
+		}
+	}
+	
+	public void moveToSweetSpot() {
+		//-272. more negative = more open
+		System.out.println("Moving to sweet spot. curr encoder: " + shelfEncoder.get());
+		if (shelfEncoder.get() < -270) {
+			System.out.println("Moving in Close direction");
+			//move in the close direction
+			shelfMotor.set(MOTOR_SPEED);
+			currentState = ShelfState.MOVING_TO_SWEET_SPOT;
+		}
+		else if (shelfEncoder.get() > -265) {
+			System.out.println("Moving in open direction");
+			shelfMotor.set(-MOTOR_SPEED);
+			currentState = ShelfState.MOVING_TO_SWEET_SPOT;
 		}
 	}
 	

@@ -164,7 +164,8 @@ public class Robot extends SampleRobot {
     	LIFT_RAISING,
     	LIFT_RAISED,
     	SHELF_OPENING,
-    	SHELF_OPEN
+    	SHELF_MOVING_TO_SWEET_SPOT,
+    	FINISHED
     }
 
     /**
@@ -196,7 +197,15 @@ public class Robot extends SampleRobot {
         			shelfSystem.fullyOpen();
         		}
         		if (gateModeState == AutoGateModeState.SHELF_OPENING && shelfSystem.getState() == ShelfState.OPEN) {
-        			gateModeState = AutoGateModeState.SHELF_OPEN;
+        			gateModeState = AutoGateModeState.SHELF_MOVING_TO_SWEET_SPOT;
+        			System.out.println("Moving to sweet spot");
+        			shelfSystem.moveToSweetSpot();
+        			
+        		}
+        		if (gateModeState == AutoGateModeState.SHELF_MOVING_TO_SWEET_SPOT && shelfSystem.getState() == ShelfState.AT_POINT) {
+        			
+        			System.out.println("AutoGate Mode done");
+        			gateModeState = AutoGateModeState.FINISHED;
         			autoGateMode = false;
         		}
         	}

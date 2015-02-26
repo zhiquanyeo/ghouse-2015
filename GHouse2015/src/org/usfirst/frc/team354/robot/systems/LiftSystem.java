@@ -185,7 +185,7 @@ public class LiftSystem {
 			currentState = LiftState.AT_TOP;
 		}
 		else {
-			System.out.println("Stopping AT POINT");
+			//System.out.println("Stopping AT POINT");
 			currentState = LiftState.AT_POINT;
 		}
 	}
