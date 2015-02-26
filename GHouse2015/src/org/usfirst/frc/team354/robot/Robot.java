@@ -4,8 +4,11 @@ package org.usfirst.frc.team354.robot;
 
 import org.usfirst.frc.team354.robot.systems.HDrive;
 import org.usfirst.frc.team354.robot.systems.LiftSystem;
+import org.usfirst.frc.team354.robot.systems.LiftSystem.LiftState;
 import org.usfirst.frc.team354.robot.systems.ShelfSystem;
+import org.usfirst.frc.team354.robot.systems.ShelfSystem.ShelfState;
 
+import edu.wpi.first.wpilibj.CounterBase.EncodingType;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.SampleRobot;
@@ -44,8 +47,8 @@ public class Robot extends SampleRobot {
 	private static final int PORT_MOTOR_LIFT = 3; //PWM
 	private static final int PORT_MOTOR_LIFT_ROLLER_A = 5; //PWM
 	private static final int PORT_MOTOR_LIFT_ROLLER_B = 6; //PWM
-	private static final int PORT_LIFT_ENCODER_CH_A = 2; //Digital
-	private static final int PORT_LIFT_ENCODER_CH_B = 3; //Digital
+	private static final int PORT_LIFT_ENCODER_CH_A = 7; //Digital
+	private static final int PORT_LIFT_ENCODER_CH_B = 8; //Digital
 	private static final int PORT_LIFT_TOP_SWITCH = 0; //Digital
 	private static final int PORT_LIFT_BOTTOM_SWITCH = 1; //Digital
 	
@@ -53,21 +56,22 @@ public class Robot extends SampleRobot {
 	private static final int PORT_MOTOR_SHELF = 4; //PWM
 	private static final int PORT_MOTOR_SHELF_ROLLER_A = 7; //PWM
 	private static final int PORT_MOTOR_SHELF_ROLLER_B = 8; //PWM
-	private static final int PORT_SHELF_ENCODER_CH_A = 4; //Digital
-	private static final int PORT_SHELF_ENCODER_CH_B = 5; //Digital
-	private static final int PORT_SHELF_OPEN_SWITCH = 6; //Digital
-	private static final int PORT_SHELF_CLOSE_SWITCH = 7; //Digital
+	private static final int PORT_SHELF_ENCODER_CH_A = 5; //Digital
+	private static final int PORT_SHELF_ENCODER_CH_B = 6; //Digital
+	private static final int PORT_SHELF_OPEN_SWITCH = 2; //Digital
+	private static final int PORT_SHELF_CLOSE_SWITCH = 3; //Digital
 	
 	
 	/*********************************
 	 * Main Drive System Components
 	 *********************************/
 	private HDrive robotDrive;
+	private RobotDrive robotMecDrive; //Meccanum Drive
 	//Speed Controllers for the drive train
 	private SpeedController fL;
 	private SpeedController fR;
-	//private SpeedController rL;
-	//private SpeedController rR;
+	private SpeedController rL;
+	private SpeedController rR;
 	private SpeedController hD;
 	private double driveExpoValue = 4.0;
 	private double crabExpoValue = 4.0; //Separate for strafing
@@ -123,11 +127,13 @@ public class Robot extends SampleRobot {
     	hD = new Victor(PORT_MOTOR_H_DRIVE);
     	
     	robotDrive = new HDrive(fL, fR, hD);
+    	
+    	//robotMecDrive = new RobotDrive(fL, rL, fR, rR);
     }
     
     private void initializeLiftSystem() {
     	liftMotor = new Victor(PORT_MOTOR_LIFT);
-    	liftEncoder = new Encoder(PORT_LIFT_ENCODER_CH_A, PORT_LIFT_ENCODER_CH_B);
+    	liftEncoder = new Encoder(PORT_LIFT_ENCODER_CH_A, PORT_LIFT_ENCODER_CH_B, false, EncodingType.k4X);
     	liftTopSwitch = new DigitalInput(PORT_LIFT_TOP_SWITCH);
     	liftBottomSwitch = new DigitalInput(PORT_LIFT_BOTTOM_SWITCH);
     	
@@ -151,18 +157,49 @@ public class Robot extends SampleRobot {
     public void autonomous() {
         
     }
+    
+    //Move this up at some point
+    enum AutoGateModeState {
+    	IDLE,
+    	LIFT_RAISING,
+    	LIFT_RAISED,
+    	SHELF_OPENING,
+    	SHELF_OPEN
+    }
 
     /**
      * Runs the motors with arcade steering.
      */
     public void operatorControl() {
+    	//liftSystem.sendToBottom();
+    	
+    	boolean autoGateMode = false;
+    	AutoGateModeState gateModeState = AutoGateModeState.IDLE;
+    	
         while (isOperatorControl() && isEnabled()) {
         	// Inform the various systems that we're in a new cycle
         	liftSystem.update();
         	shelfSystem.update();
         	
         	//DRIVE THIS THING
-        	//doDrive();
+        	doDrive();
+        	
+        	if (driveController.getRawButton(8) && !autoGateMode) {
+        		autoGateMode = true;
+        		gateModeState = AutoGateModeState.LIFT_RAISING;
+        		liftSystem.moveToSafeHeight();
+        	}
+        	
+        	if (autoGateMode) {
+        		if (gateModeState == AutoGateModeState.LIFT_RAISING && liftSystem.getState() == LiftState.AT_POINT) {
+        			gateModeState = AutoGateModeState.SHELF_OPENING;
+        			shelfSystem.fullyOpen();
+        		}
+        		if (gateModeState == AutoGateModeState.SHELF_OPENING && shelfSystem.getState() == ShelfState.OPEN) {
+        			gateModeState = AutoGateModeState.SHELF_OPEN;
+        			autoGateMode = false;
+        		}
+        	}
         	
         	//==== Lift Controls (Manual Override) ====
         	if (driveController.getRawButton(2) || driveController.getRawButton(4)) {
@@ -173,8 +210,24 @@ public class Robot extends SampleRobot {
         			liftSystem.moveUp();
         		}
         	}
-        	else {
+        	else if (liftSystem.getState() != LiftState.MOVING_TO_BOTTOM &&
+        			 liftSystem.getState() != LiftState.MOVING_TO_TOP &&
+        			 liftSystem.getState() != LiftState.MOVING_TO_SAFE_POINT) {
         		liftSystem.stop();
+        	}
+        	
+        	//==== Shelf Controls (Manual Override) ====
+        	if (driveController.getRawButton(1) || driveController.getRawButton(3)) {
+        		if (driveController.getRawButton(1)) {
+        			shelfSystem.open();
+        		}
+        		else {
+        			shelfSystem.close();
+        		}
+        	}
+        	else if (shelfSystem.getState() != ShelfState.MOVING_TO_CLOSED &&
+        			 shelfSystem.getState() != ShelfState.MOVING_TO_OPEN) {
+        		shelfSystem.stop();
         	}
         	
         }

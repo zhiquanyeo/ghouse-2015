@@ -36,7 +36,7 @@ public class ShelfSystem {
 	private SpeedController rollerA;
 	private SpeedController rollerB;
 	
-	private static final double MOTOR_SPEED = 0.4; //This controls how fast the shelf opens and closes
+	private static final double MOTOR_SPEED = 0.5; //This controls how fast the shelf opens and closes
 	private static final double ROLLER_SPEED = 0.6; //This controls how fast the rollers spin
 	
 	//===== State Machine =====
@@ -90,14 +90,14 @@ public class ShelfSystem {
 		 	}
 		 }
 		 else if (currentState == ShelfState.MOVING_TO_POINT) {
-		 	if (!openSwitch.get()) {
-		 		shelfMotor.set(0);
-		 		currentState = ShelfState.OPEN;
-		 	}
-		 	else if (!closeSwitch.get()) {
-		 		shelfMotor.set(0);
-		 		currentState = ShelfState.CLOSED;
-		 	}
+//		 	if (!openSwitch.get()) {
+//		 		shelfMotor.set(0);
+//		 		currentState = ShelfState.OPEN;
+//		 	}
+//		 	else if (!closeSwitch.get()) {
+//		 		shelfMotor.set(0);
+//		 		currentState = ShelfState.CLOSED;
+//		 	}
 		 }
 		
 		lastUpdateTime = currentTime;
@@ -107,7 +107,7 @@ public class ShelfSystem {
 		//Only run this if we are at a point
 		if (currentState == ShelfState.AT_POINT || currentState == ShelfState.CLOSED) {
 			//Run the motor until the open switch registers off
-			shelfMotor.set(MOTOR_SPEED); //TODO: If the motor runs in the opposite direction, flip this
+			shelfMotor.set(-MOTOR_SPEED); //TODO: If the motor runs in the opposite direction, flip this
 			currentState = ShelfState.MOVING_TO_OPEN;
 		}
 	}
@@ -116,30 +116,50 @@ public class ShelfSystem {
 		//Only run this if we are at a point
 		if (currentState == ShelfState.AT_POINT || currentState == ShelfState.OPEN) {
 			//Run the motor until the open switch registers off
-			shelfMotor.set(-MOTOR_SPEED); //TODO: If the motor runs in the opposite direction, flip this
+			shelfMotor.set(MOTOR_SPEED); //TODO: If the motor runs in the opposite direction, flip this
 			currentState = ShelfState.MOVING_TO_CLOSED;
 		}
 	}
 	
 	public void open() {
 		if (!openSwitch.get()) {
+			System.out.println("NOT OK");
 			shelfMotor.set(0);
 			currentState = ShelfState.OPEN;
 		}
 		else {
-			shelfMotor.set(MOTOR_SPEED); //TODO If we're spinnign the wrong way, flip this
+			System.out.println("OK");
+			shelfMotor.set(-MOTOR_SPEED); //TODO If we're spinnign the wrong way, flip this
 			currentState = ShelfState.MOVING_TO_POINT;
+			System.out.println("ShelfEncoder: " + shelfEncoder.get());
 		}
+		
 	}
 	
 	public void close() {
 		if (!closeSwitch.get()) {
 			shelfMotor.set(0);
 			currentState = ShelfState.CLOSED;
+			shelfEncoder.reset();
 		}
 		else {
-			shelfMotor.set(-MOTOR_SPEED); //TODO If we're spinnign the wrong way, flip this
+			shelfMotor.set(MOTOR_SPEED); //TODO If we're spinnign the wrong way, flip this
 			currentState = ShelfState.MOVING_TO_POINT;
+			System.out.println("ShelfEncoder: " + shelfEncoder.get());
+		}
+		
+	}
+	
+	public void stop() {
+		shelfMotor.set(0);
+		if (!openSwitch.get()) {
+			currentState = ShelfState.OPEN;
+		}
+		else if (!closeSwitch.get()) {
+			currentState = ShelfState.CLOSED;
+		}
+		else {
+			currentState = ShelfState.AT_POINT;
 		}
 	}
 	

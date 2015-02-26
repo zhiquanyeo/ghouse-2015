@@ -25,6 +25,8 @@ import edu.wpi.first.wpilibj.SpeedController;
  * 
  * The 3 AT_* states are all valid start and end states. The LiftSystem should start at the AT_POINT
  * state until it can positively ascertain that it is either AT_TOP or AT_BOTTOM.
+ * 
+ * The Safe limit is 6000
  * @author zhiquan
  *
  */
@@ -36,7 +38,7 @@ public class LiftSystem {
 	private SpeedController rollerA;
 	private SpeedController rollerB;
 	
-	private static final double MOTOR_SPEED = 0.4;
+	private static final double MOTOR_SPEED = 1.0;
 	private static final double ROLLER_SPEED = 0.6;
 	
 	//====== State Machine =======
@@ -47,7 +49,8 @@ public class LiftSystem {
 		AT_POINT,
 		MOVING_TO_POINT,
 		MOVING_TO_TOP,
-		MOVING_TO_BOTTOM
+		MOVING_TO_BOTTOM,
+		MOVING_TO_SAFE_POINT
 	};
 	
 	private LiftState currentState = LiftState.AT_POINT;
@@ -58,14 +61,13 @@ public class LiftSystem {
 		liftMotor = lMotor;
 		topSwitch = tSwitch;
 		bottomSwitch = bSwitch;
-		lEncoder = liftEncoder;
+		liftEncoder = lEncoder;
 		rollerA = rA;
 		rollerB = rB;
 	}
 	
 	public void update() {
 		long currentTime = System.currentTimeMillis();
-		
 		/**
 		 * We update the state machine here
 		 * If we were forced to move to top/bottom via sendToTop/sendToBottom
@@ -81,6 +83,9 @@ public class LiftSystem {
 				liftMotor.set(0);
 				currentState = LiftState.AT_TOP;
 			}
+			else {
+				liftMotor.set(MOTOR_SPEED);
+			}
 		}
 		else if (currentState == LiftState.MOVING_TO_BOTTOM) {
 			//Stop the motor if we have hit the bottom switch
@@ -89,15 +94,30 @@ public class LiftSystem {
 				currentState = LiftState.AT_BOTTOM;
 				liftEncoder.reset();
 			}
+			else {
+				System.out.println("Moving to bottom...");
+				liftMotor.set(-MOTOR_SPEED);
+				System.out.println("MotorSpeed set");
+				currentState = LiftState.MOVING_TO_BOTTOM;
+			}
 		}
 		else if (currentState == LiftState.MOVING_TO_POINT) {
-			if (!topSwitch.get()) {
+//			if (!topSwitch.get()) {
+//				liftMotor.set(0);
+//				currentState = LiftState.AT_TOP;
+//			}
+//			else if (!bottomSwitch.get()) {
+//				liftMotor.set(0);
+//				currentState = LiftState.AT_BOTTOM;
+//			}
+		}
+		else if (currentState == LiftState.MOVING_TO_SAFE_POINT) {
+			if (liftEncoder.get() > 6000) {
 				liftMotor.set(0);
-				currentState = LiftState.AT_TOP;
+				currentState = LiftState.AT_POINT;
 			}
-			else if (!bottomSwitch.get()) {
-				liftMotor.set(0);
-				currentState = LiftState.AT_BOTTOM;
+			else {
+				liftMotor.set(MOTOR_SPEED);
 			}
 		}
 		
@@ -106,18 +126,18 @@ public class LiftSystem {
 	
 	public void sendToBottom() {
 		//Only run this if we are at a point
-		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_TOP) { 
+		//if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_TOP) { 
 			//Run the motor until the bottom switch registers off
 			liftMotor.set(-MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_BOTTOM;
-		}
+		//}
 	}
 	
 	public void sendToTop() {
-		if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_BOTTOM) { 
+		//if (currentState == LiftState.AT_POINT || currentState == LiftState.AT_BOTTOM) { 
 			liftMotor.set(MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_TOP;
-		}
+		//}
 	}
 	
 	public void calibrate() {
@@ -135,6 +155,7 @@ public class LiftSystem {
 		else {
 			liftMotor.set(MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_POINT;
+			//System.out.println("Encoder: " + liftEncoder.get());
 		}
 	}
 	
@@ -145,10 +166,12 @@ public class LiftSystem {
 		if (!bottomSwitch.get()) {
 			liftMotor.set(0);
 			currentState = LiftState.AT_BOTTOM;
+			liftEncoder.reset();
 		}
 		else {
 			liftMotor.set(-MOTOR_SPEED);
 			currentState = LiftState.MOVING_TO_POINT;
+			//System.out.println("Encoder: " + liftEncoder.get());
 		}
 	}
 	
@@ -162,7 +185,17 @@ public class LiftSystem {
 			currentState = LiftState.AT_TOP;
 		}
 		else {
+			System.out.println("Stopping AT POINT");
 			currentState = LiftState.AT_POINT;
+		}
+	}
+	
+	public void moveToSafeHeight() {
+		//6000
+		if (liftEncoder.get() < 6000) {
+			//move up
+			liftMotor.set(MOTOR_SPEED);
+			currentState = LiftState.MOVING_TO_SAFE_POINT;
 		}
 	}
 	
